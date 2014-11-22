@@ -1,0 +1,140 @@
+<html>
+    <head>
+        <script type="text/javascript" src="frameworks/jquery-2.1.1.min.js"></script>
+        <script type="text/javascript" src="frameworks/Tocca.min.js"></script>
+        <script type="text/javascript" src="general.js"></script>
+        <script type="text/javascript" src="game.js"></script>
+        <script type="text/html" id="tmpl_test">
+            <p><%=x%></p>
+        </script>
+        <script type="text/html" id="tmpl_row">
+            <div class="row" id="<%=rowId%>">
+                <div class="inline">
+                    <div class="inline resultBeed"></div>
+                    <div class="inline resultBeed"></div>
+                    <div></div>
+                    <div class="inline resultBeed"></div>
+                    <div class="inline resultBeed"></div>
+                </div>
+                <span>........</span>
+                <div class="inline plcaholder"></div>
+                <div class="inline plcaholder"></div>
+                <div class="inline plcaholder"></div>
+                <div class="inline plcaholder"></div>
+            </div>
+        </script>
+        <style>
+            .bg {
+                background: lightgrey;
+            }
+            .red {background: red}
+            .yellow {background: yellow}
+            .green {background: green}
+            .brown {background: brown}
+            .blue {background: blue}
+            .orange {background: orange}
+            .bead {
+                width:40px;
+                height:40px;
+                border-radius: 50%/50%;
+                border:solid black 0px;
+            }
+            .circle {
+                width:20px;
+                height:20px;
+                border-radius: 50%/50%;
+                border:solid red 10px;
+            }
+            .plcaholder {
+                width:20px;
+                height:20px;
+                border-radius: 50%/50%;
+                border:solid grey 10px;
+            }
+            .resultBeed {
+                width:10px;
+                height:10px;
+                border-radius: 50%/50%;
+                border:solid black 5px;
+            }
+            .dragEnter {
+                border:solid black 10px;
+            }
+            .inline {
+                display: inline-block;
+            }
+        </style>
+    </head>
+    <body class="bg">
+
+        <div id="gameFiled" ></div>
+        <div id="chooserField" >
+            <div class="bead red inline" draggable="true" data-color-class="red"></div>
+            <div class="bead yellow inline" draggable="true" data-color-class="yellow"></div>
+            <div class="bead green inline" draggable="true" data-color-class="green"></div>
+            <div class="bead brown inline" draggable="true" data-color-class="brown"></div>
+            <div class="bead blue inline" draggable="true" data-color-class="blue"></div>
+            <div class="bead orange inline" draggable="true" data-color-class="orange"></div>
+        </div>
+
+
+    </body>
+    <script>
+        (function() {
+        var initialGameState = game('red', 'yellow', 'green', 'blue')
+
+        // create gamefield of template rows
+        var $placeHolder = document.getElementById("gameFiled")
+        var html = ""
+        for( var i = 0; i < initialGameState.maxRows; i++ ) {
+            var tmplRow =  g.tmpl("tmpl_row", {rowId:i})
+            html += tmplRow
+        }
+        $placeHolder.innerHTML = html
+
+        var $dragElement = null
+
+        // attach drp event handler
+        var $dropElements = document.getElementsByClassName("plcaholder")
+        for( var i = 0; i < $dropElements.length; i++) {
+            $dropElements[i].addEventListener('drop', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                this.classList.add($dragElement.getAttribute("data-color-class"))
+                this.classList.remove("dragEnter")
+                this.classList.remove(this.getAttribute("data-color-class"))
+                this.setAttribute("data-color-class", $dragElement.getAttribute("data-color-class"))
+                console.log('drop',e,$dragElement)
+            },false)
+            $dropElements[i].addEventListener('dragover', function(e) {
+                if( !e.target.classList.contains("plcaholder") ) return true
+                e.preventDefault();
+                return false
+            },false)
+            $dropElements[i].addEventListener('dragenter', function(e) {
+                if( !e.target.classList.contains("plcaholder") ) return true
+                e.preventDefault();
+                this.classList.add("dragEnter")
+                return false
+            },false)
+            $dropElements[i].addEventListener('dragleave', function(ev) {
+                this.classList.remove("dragEnter")
+            },false)
+        }
+
+        // attach drag event handler
+        var $dragElements = document.getElementsByClassName("bead")
+        for( var i = 0; i < $dragElements.length; i++) {
+            $dragElements[i].addEventListener('dragstart', function(e) {
+                e.dataTransfer.effectAllowed = 'move';
+                e.dataTransfer.setData('elementDragged', "hallo");
+                $dragElement = this
+            },false)
+            $dragElements[i].addEventListener('dragend', function(ev) {
+                console.log('dragend',$dragElement)
+                $dragElement = null
+            },false)
+        }
+        })()
+    </script>
+</html>

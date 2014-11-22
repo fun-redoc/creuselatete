@@ -1,66 +1,68 @@
-(function(root, factory) {
-  if (typeof define === 'function' && define.amd) {
-    define(factory);
-  } else if (typeof exports === 'object') {
-    module.exports = factory(require, exports, module);
-  } else {
-    root.g = factory();
-  }
-}(this, function(require, exports, module) {
-'use strict';
 
-
-var game = { };
-
-game.RED = 'red'
-game.GREEN = 'green'
-game.YELLOW = 'yellow'
-game.BLUE = 'blue'
-game.ORANGE = 'orange'
-game.BROWN = 'brown'
-
-var colors = [game.RED,game.GREEN,game.YELLOW,game.BLUE,game.ORANGE,game.BROWN]
-var maxRows
-
-var template = {
-    gameField: [],
-    evaluations: [],
-    task: null
+if(!g){
+    var g = require("./general.js")
 }
 
 var randomExcept = function(except, modul) {
     var rnd
-    while( excep.indexOf(rnd = g.rnd(modul)) != -1 )
+    while( except.indexOf(rnd = g.rnd(modul)) !== -1 ) {}
     return rnd
 }
 
-game.prototype.new = function() {
-    var newGame = Object.create(template)
-    newGame.task = [1,2,3,4].reduce(function(a,v) {
+
+var game = function game(/* beeds to initialize task */) {
+    var gameArguments = arguments
+    var color = { RED:'red',
+        GREEN:'green',
+        YELLOW:'yellow',
+        BLUE:'blue',
+        ORANGE:'orange',
+        BROWN:'brown' }
+    var colors = [color.RED,color.GREEN,color.YELLOW,color.BLUE,color.ORANGE,color.BROWN]
+    var maxRows = 6
+
+    return {
+        color:color,
+        maxRows: maxRows,
+        state: {
+                    gameField: [],
+                    evaluations: [],
+                    task: [1,2,3,4].reduce(function(a,v) {
                                         return a.concat(randomExcept(a,colors.length))
                                     }, [])
-    return newGame.map(function(a) { return colors[a]});
+                                    .map(function(a,i) { return gameArguments[i] || colors[a]})
+                },
+
+        play:function() {
+            var blacks = 0
+            var whites = 0
+            for( var i = 0; i < arguments.length; i++ ) {
+                var isBlack = (arguments[i] === this.state.task[i] ? 1 : 0)
+                blacks += isBlack
+                if( !isBlack ) {
+                    whites += (this.state.task.indexOf(arguments[i]) === -1 ? 0 : 1)
+                }
+            }
+
+            this.state.evaluations.push({blacks: blacks, whites:whites})
+            this.state.gameField.push(arguments)
+            return this
+        },
+
+        lastEvaluation:function() {
+            return this.state.evaluations[this.state.evaluations.length-1]
+        },
+
+        isGameOver:function() {
+            return this.state.evaluations.length >= maxRows
+        },
+
+        isWon:function() {
+            return this.lastEvaluation().blacks === 4
+        }
+    }
 }
 
-game.prototype.play = function() {
-    var blacks = arguments.reduce( function(a,c,i) {
-                                        return a + (c === this.task[i] ? 1 : 0)
-                                    }, 0)
-    var whites = (-blacks + (arguments.filter( function(c) { return (this.task.indexOf(c) !== -1) })))
-    this.evaluations.push({balcks: blacks, whites:whites})
-    this.gameField.push(arguments)
-    return this
+if(typeof(module) !== 'undefined') {
+    module.exports = game
 }
-
-
-game.prototype.isGameOver = function() {
-    return this.evaluations.length >= maxRows
-}
-
-game.prototype.isWon = function() {
-    return this.evaluations[ths.evaluations.length] === 4
-}
-
-// RETURN public object
-return game;
-}));
