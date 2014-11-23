@@ -1,0 +1,16 @@
+function(isRowReady, whites, blacks) {
+    // TODO
+    // mark whies and blacks
+    // lock current row
+    // unlock next row
+    // if last Row game Over Display
+    if(isRowReady) {
+        var selectorForResultBeads = "div[id='" + currentRow + "'] div.resultBeed"
+        var $resultBeads = document.querySelectorAll(selectorForResultBeads)
+        for(var i = 0; i < $resultBeads.length; i++ ) {
+            if(blacks > 0 ) { $resultBeads[i].classList.add("black"); blacks -= 1; }
+            else if(whites > 0 ) {$resultBeads[i].classList.add("white"); whites -= 1; }
+
+        }
+    }
+})

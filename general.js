@@ -12,6 +12,9 @@
 
 var g = { };
 
+g.noop = function noop() {
+    return null
+}
 
     //+ trace :: b -> a -> a
 g.trace = function trace(b,a) {
@@ -24,6 +27,15 @@ g.rnd = function rnd(modul) {
   return Math.floor(((Math.random() * 1000000000) % modul))
 }
 
+
+g.doOnceAterNInvokes = function doOnceAterNInvokes(fn, n) {
+ var cnt = 0
+ var func = fn
+ return function() {
+     if( cnt < n ) cnt += 1
+     if(cnt === n) { cnt += 1; return func() }
+ }
+}
 
 // Simple JavaScript Templating
 // John Resig - http://ejohn.org/ - MIT Licensed

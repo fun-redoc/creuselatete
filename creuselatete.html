@@ -4,9 +4,7 @@
         <script type="text/javascript" src="frameworks/Tocca.min.js"></script>
         <script type="text/javascript" src="general.js"></script>
         <script type="text/javascript" src="game.js"></script>
-        <script type="text/html" id="tmpl_test">
-            <p><%=x%></p>
-        </script>
+
         <script type="text/html" id="tmpl_row">
             <div class="row" id="<%=rowId%>" data-active="<%=rowActive%>">
                 <div class="inline">
@@ -71,6 +69,12 @@
             .inline {
                 display: inline-block;
             }
+            .button {
+                border-radius: 20%;
+                width:100px;
+                height:40px;
+                border:solid black 5px;
+            }
         </style>
     </head>
     <body class="bg">
@@ -86,12 +90,47 @@
             <div class="bead orange inline" draggable="true" data-color-class="orange"></div>
         </div>
 
+        <button class="button" id="commitRow" disabled="true">Next Row</button>
+        <button class="button" id="restartGame">New Game</button>
 
     </body>
     <script>
 
-        (function (dropHandler) {
+        (function gameController (dropHandler,rowCompleteHandler,newGameHandler) {
+            var activeRowIsReady = function(caseTrue, caseFalse) {
+                var $acktiveRow = document.querySelectorAll(".active[data-color-class]")
+                if($acktiveRow.length === 4) {
+                    return caseTrue()
+                } else {
+                    return caseFalse()
+                }
+            }
+
+
             var initialGameState = game('red', 'yellow', 'green', 'blue')
+
+            // button handler
+            document.getElementById("commitRow").addEventListener('click', function(ev) {
+                console.log("commitRow:click")
+                var currentRow = document.getElementsByClassName("active")[0].getAttribute("data-row")
+                rowCompleteHandler(colors, currentRow, function continueGame(isLost, isWon, balcks, whites) {
+                    var selectorForResultBeads = "div[id='" + currentRow + "'] div.resultBeed"
+                    var $resultBeads = document.querySelectorAll(selectorForResultBeads)
+                    for(var i = 0; i < $resultBeads.length; i++ ) {
+                        if(blacks > 0 ) { $resultBeads[i].classList.add("black"); blacks -= 1; }
+                        else if(whites > 0 ) {$resultBeads[i].classList.add("white"); whites -= 1; }
+                    }
+
+                    if(isLost) {
+                        console.log("lost game over")
+                    } else if(isWon) {
+                        console.log("won game over")
+                    }
+                })
+            }, false)
+            document.getElementById("restartGame").addEventListener('click', function(ev) {
+                console.log("restartGame:click")
+            }, false)
 
             // create gamefield of template rows
             var $placeHolder = document.getElementById("gameFiled")
@@ -121,22 +160,16 @@
                     dropHandler($dragElement.getAttribute("data-color-class"),
                                 currentRow,
                                 this.getAttribute("data-col"),
-                                function(isRowReady, whites, blacks) {
-                                    // TODO
-                                    // mark whies and blacks
-                                    // lock current row
-                                    // unlock next row
-                                    // if last Row game Over Display
-                                    if(isRowReady) {
-                                        var selectorForResultBeads = "div[id='" + currentRow + "'] div.resultBeed"
-                                        var $resultBeads = document.querySelectorAll(selectorForResultBeads)
-                                        for(var i = 0; i < $resultBeads.length; i++ ) {
-                                            if(blacks > 0 ) { $resultBeads[i].classList.add("black"); blacks -= 1; }
-                                            else if(whites > 0 ) {$resultBeads[i].classList.add("white"); whites -= 1; }
+                                g.noop)
+                    activeRowIsReady(
+                        function caseTrue() {
+                            document.getElementById("commitRow").removeAttribute("disabled")
+                        },
+                        function caseFalse() {
+document.getElementById("commitRow").setAttribute("disabled","true")
+                        }
+                    )
 
-                                        }
-                                    }
-                                })
                 },false)
                 $dropElements[i].addEventListener('dragover', function(e) {
                     if( !e.target.classList.contains("plcaholder") ) return true
@@ -168,12 +201,19 @@
                 },false)
             }
         })(
-            function(color, row, col, completionHandler) {
-                console.log(color, row, col)
-                // TODO is row ready
-                //      how many blacks and whites
-                completionHandler(true, 3,1)
-        })
+            function dropHandler(color, row, col, continuationFunction) {
+//                console.log("dropHandler", color, row, col);
+                return continuationFunction()
+            },
+            function rowCompleteHandler(colors, row, continuationFunction) {
+                console.log("rowCompleteHandler", colors, row);
+                return continuationFunction()
+            },
+            function newGame(continuationFunction) {
+                console.log("newGAme" );
+                return continuationFunction()
+            }
+        )
 
 
     </script>
