@@ -38,6 +38,9 @@
                 height:40px;
                 border-radius: 50%/50%;
                 border:solid black 0px;
+
+                box-shadow: 0 8px 6px -6px black;
+
             }
             .circle {
                 width:20px;
@@ -50,6 +53,8 @@
                 height:20px;
                 border-radius: 50%/50%;
 /*                border:solid lightgrey 10px;*/
+                box-shadow: 0 8px 6px -6px black;
+
             }
             .active {
                 border:solid grey 10px;
@@ -62,6 +67,8 @@
                 height:10px;
                 border-radius: 50%/50%;
                 border:solid black 5px;
+                box-shadow: 0 8px 6px -6px black;
+
             }
             .dragEnter {
                 border:solid black 10px;
@@ -70,10 +77,43 @@
                 display: inline-block;
             }
             .button {
-                border-radius: 20%;
+                border-radius: 10%;
                 width:100px;
                 height:40px;
-                border:solid black 5px;
+                border:solid black 3px;
+                box-shadow: 0 8px 6px -6px black;
+            }
+            .displayNone {
+                display: none;
+            }
+            .winning {
+                background: green;
+            }
+            .loosing {
+                background: red;
+            }
+            .popup {
+
+                padding: 10px;
+
+                vertical-align: middle;
+                text-align: center;
+
+                color: white;
+
+                box-shadow: 0 8px 6px -6px black;
+
+                border-radius: 10%;
+                border:solid lightgrey 1px;
+
+                /* center on screen*/
+                width: 150px;
+/*                height: 150px;*/
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                margin-left: -75px;
+                margin-top: -75px;
             }
         </style>
     </head>
@@ -90,8 +130,18 @@
             <div class="bead orange inline" draggable="true" data-color-class="orange"></div>
         </div>
 
+        <hr/>
+
+
         <button class="button" id="commitRow" disabled="true">Next Row</button>
         <button class="button" id="restartGame">New Game</button>
+
+        <div class="popup winning">
+            You have won!
+            <br/>
+            <br/>
+            <button class="button" id="restartGame">New Game</button>
+        </div>
 
     </body>
     <script>
@@ -143,8 +193,10 @@
 
                     if(isLost) {
                         console.log("lost game over")
+                        resetField()
                     } else if(isWon) {
                         console.log("won game over")
+                        resetField()
                     } else {
                         setDataAvtive(false, document.querySelectorAll(".active[data-row='"+currentRow+"']"))
                         setDataAvtive(true, document.querySelectorAll(".inactive[data-row='"+(Number(currentRow)+1)+"']"))
@@ -238,10 +290,11 @@ document.getElementById("commitRow").setAttribute("disabled","true")
                 },
                 function rowCompleteHandler(colors, continuationFunction) {
                     game.play.apply(null, colors)
-                    return continuationFunction(game.isWon(), game.isGameOver(), game.lastEvaluation().blacks, game.lastEvaluation().whites)
+                    return continuationFunction(game.isGameOver(), game.isWon(), game.lastEvaluation().blacks, game.lastEvaluation().whites)
                 },
                 function newGame(continuationFunction) {
                     console.log("newGAme" );
+                    game = makeGame()
                     return continuationFunction()
                 }
             )

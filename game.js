@@ -19,7 +19,7 @@ var makeGame = function game(/* beeds to initialize task */) {
         ORANGE:'orange',
         BROWN:'brown' }
     var colors = [color.RED,color.GREEN,color.YELLOW,color.BLUE,color.ORANGE,color.BROWN]
-    var maxRows = 6
+    var maxRows = 2
     var state = {
                     gameField: [],
                     evaluations: [],
@@ -41,11 +41,16 @@ var makeGame = function game(/* beeds to initialize task */) {
         play:function() {
             var blacks = 0
             var whites = 0
+            var taskCopy = g.copy(state.task)
             for( var i = 0; i < arguments.length; i++ ) {
-                var isBlack = (arguments[i] === state.task[i] ? 1 : 0)
+                var isBlack = (arguments[i] === taskCopy[i] ? 1 : 0)
+                var idx = taskCopy.indexOf(arguments[i])
                 blacks += isBlack
                 if( !isBlack ) {
-                    whites += (state.task.indexOf(arguments[i]) === -1 ? 0 : 1)
+                    whites += (idx === -1 ? 0 : 1)
+                }
+                if( idx !== -1 ) {
+                    taskCopy.splice(idx,1)
                 }
             }
 

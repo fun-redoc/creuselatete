@@ -23,6 +23,21 @@ g.trace = function trace(b,a) {
 }
 
 
+//+ copy :: a -> a
+g.copy = function copy(origin) {
+  if( origin instanceof Array) return origin.map(copy)
+
+  if( typeof origin === 'object') {
+    return Object.keys(origin).reduce( function(accu, key) {
+      accu[key] = typeof origin[key] === 'object' ? copy(origin[key]) : origin[key]
+      return accu
+    }, {})
+  }
+
+  return origin
+}
+
+
 g.rnd = function rnd(modul) {
   return Math.floor(((Math.random() * 1000000000) % modul))
 }
