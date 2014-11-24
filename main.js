@@ -1,13 +1,14 @@
 var g = require("./general.js")
 var game = require("./game.js")('red', 'blue', 'yellow', 'green')
 
-var nextGameState = game.play(game.color.ORANGE, game.color.BROWN, game.color.GREEN, game.color.RED)
-console.log(nextGameState.state.evaluations, nextGameState.isWon())
-nextGameState = nextGameState.play(game.color.RED, game.color.BLUE, game.color.YELLOW, game.color.GREEN)
-console.log(nextGameState.state.evaluations, nextGameState.isWon())
-nextGameState = nextGameState.play(game.color.RED, game.color.BLUE, game.color.YELLOW, game.color.GREEN)
-console.log(nextGameState.state.evaluations, nextGameState.isWon())
+var gameState = game.play.apply(null, [game.color.ORANGE, game.color.BROWN, game.color.GREEN, game.color.RED])
+console.log(game.isGameOver(), game.isWon(), game)
 
-var gameOver = nextGameState.isGameOver()
+var gameState = game.play.apply(null, ['red', 'blue', 'yellow', 'green'])
 
-var gameLost = !nextGameState.isWon()
+console.log(game.isGameOver(), game.isWon(), game)
+
+
+var gameState = game.play.apply(null, ['red', 'blue', 'yellow', ])
+
+console.log(game.isGameOver(), game.isWon(), game)

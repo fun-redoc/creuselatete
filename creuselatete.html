@@ -96,7 +96,8 @@
     </body>
     <script>
 
-        (function gameController (dropHandler,rowCompleteHandler,newGameHandler) {
+        function gameController (maxRows, dropHandler,rowCompleteHandler,newGameHandler) {
+
             var activeRowIsReady = function(caseTrue, caseFalse) {
                 var $acktiveRow = document.querySelectorAll(".active[data-color-class]")
                 if($acktiveRow.length === 4) {
@@ -106,14 +107,33 @@
                 }
             }
 
+            var getColorsFrom = function getColorsFrom($nodeList) {
+                var colors = []
+                for( var i = 0; i < $nodeList.length; i++ ) {
+                    colors.push($nodeList[i].getAttribute("data-color-class"))
+                }
+                return colors
+            }
 
-            var initialGameState = game('red', 'yellow', 'green', 'blue')
+            var setDataAvtive = function setDataAvtive(bool, $nodeList) {
+                for( var i = 0; i < $nodeList.length; i++ ) {
+                    $nodeList[i].setAttribute("data-active", String(bool))
+                    if(bool) {
+                        $nodeList[i].classList.remove("inactive")
+                        $nodeList[i].classList.add("active")
+                    } else {
+                        $nodeList[i].classList.remove("active")
+                        $nodeList[i].classList.add("inactive")
+                    }
+                }
+            }
 
             // button handler
             document.getElementById("commitRow").addEventListener('click', function(ev) {
-                console.log("commitRow:click")
-                var currentRow = document.getElementsByClassName("active")[0].getAttribute("data-row")
-                rowCompleteHandler(colors, currentRow, function continueGame(isLost, isWon, balcks, whites) {
+                var $currentRow = document.getElementsByClassName("active")
+                var currentRow = $currentRow[0].getAttribute("data-row")
+                var colors = getColorsFrom($currentRow)
+                rowCompleteHandler(colors, function continueGame(isLost, isWon, blacks, whites) {
                     var selectorForResultBeads = "div[id='" + currentRow + "'] div.resultBeed"
                     var $resultBeads = document.querySelectorAll(selectorForResultBeads)
                     for(var i = 0; i < $resultBeads.length; i++ ) {
@@ -125,6 +145,12 @@
                         console.log("lost game over")
                     } else if(isWon) {
                         console.log("won game over")
+                    } else {
+                        setDataAvtive(false, document.querySelectorAll(".active[data-row='"+currentRow+"']"))
+                        setDataAvtive(true, document.querySelectorAll(".inactive[data-row='"+(Number(currentRow)+1)+"']"))
+                        document.getElementById("commitRow").setAttribute("disabled", "true")
+
+
                     }
                 })
             }, false)
@@ -135,7 +161,7 @@
             // create gamefield of template rows
             var $placeHolder = document.getElementById("gameFiled")
             var html = ""
-            for( var i = initialGameState.maxRows - 1; i >= 0 ;i-- ) {
+            for( var i = maxRows - 1; i >= 0 ;i-- ) {
                 var tmplRow =  g.tmpl("tmpl_row", {rowId:i, rowActive: (i===0)})
                 html += tmplRow
             }
@@ -200,21 +226,27 @@ document.getElementById("commitRow").setAttribute("disabled","true")
                     $dragElement = null
                 },false)
             }
-        })(
-            function dropHandler(color, row, col, continuationFunction) {
-//                console.log("dropHandler", color, row, col);
-                return continuationFunction()
-            },
-            function rowCompleteHandler(colors, row, continuationFunction) {
-                console.log("rowCompleteHandler", colors, row);
-                return continuationFunction()
-            },
-            function newGame(continuationFunction) {
-                console.log("newGAme" );
-                return continuationFunction()
-            }
-        )
+        }
 
+        window.onload = function() {
+            var game = makeGame('red', 'yellow', 'green', 'blue')
+
+
+            gameController( game.maxRows,
+                function dropHandler(color, row, col, continuationFunction) {
+                    return continuationFunction()
+                },
+                function rowCompleteHandler(colors, continuationFunction) {
+                    game.play.apply(null, colors)
+                    return continuationFunction(game.isWon(), game.isGameOver(), game.lastEvaluation().blacks, game.lastEvaluation().whites)
+                },
+                function newGame(continuationFunction) {
+                    console.log("newGAme" );
+                    return continuationFunction()
+                }
+            )
+
+        }
 
     </script>
 </html>
