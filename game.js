@@ -39,6 +39,7 @@ var makeGame = function game(/* beeds to initialize task */) {
         state: state,
 
         play:function() {
+debugger
             var blacks = 0
             var whites = 0
             var taskCopy = g.copy(state.task)
@@ -50,7 +51,7 @@ var makeGame = function game(/* beeds to initialize task */) {
                     whites += (idx === -1 ? 0 : 1)
                 }
                 if( idx !== -1 ) {
-                    taskCopy.splice(idx,1)
+                    taskCopy[idx] = null
                 }
             }
 
