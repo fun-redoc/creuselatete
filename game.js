@@ -19,7 +19,7 @@ var makeGame = function game(/* beeds to initialize task */) {
         ORANGE:'orange',
         BROWN:'brown' }
     var colors = [color.RED,color.GREEN,color.YELLOW,color.BLUE,color.ORANGE,color.BROWN]
-    var maxRows = 2
+    var maxRows = 6
     var state = {
                     gameField: [],
                     evaluations: [],

@@ -134,13 +134,20 @@
 
 
         <button class="button" id="commitRow" disabled="true">Next Row</button>
-        <button class="button" id="restartGame">New Game</button>
+        <button class="button restartGame">New Game</button>
 
-        <div class="popup winning">
+        <div class="popup winning displayNone" id="winningPopup">
             You have won!
             <br/>
             <br/>
-            <button class="button" id="restartGame">New Game</button>
+            <button class="button restartGame">New Game</button>
+        </div>
+
+        <div class="popup loosing displayNone" id="loosingPopup">
+            You have lost!
+            <br/>
+            <br/>
+            <button class="button restartGame">New Game</button>
         </div>
 
     </body>
@@ -178,7 +185,52 @@
                 }
             }
 
+            var resetColors = function resetColors(row) {
+                var selector = "[data-row='"+row+"']"
+                var $resultBeads = document.querySelectorAll(selector)
+                for( var i = 0; i < $resultBeads.length; i++ ) {
+                    var color = $resultBeads[i].getAttribute("data-color-class")
+                    $resultBeads[i].classList.remove(color)
+                    $resultBeads[i].removeAttribute("data-color-class")
+                }
+            }
+
+            var gameLost = function gameLost() {
+                var $resultPopup = document.getElementById("loosingPopup")
+                $resultPopup.classList.remove("displayNone")
+            }
+
+            var gameWon = function gameLost() {
+                var $resultPopup = document.getElementById("winningPopup")
+                $resultPopup.classList.remove("displayNone")
+            }
+
+            var restartGame = function(ev) {
+                for( var i = 1; i < maxRows; i++ ) {
+                        resetColors(i)
+                        setDataAvtive(false, document.querySelectorAll(".active[data-row='"+i+"']"))
+                }
+                        setDataAvtive(true, document.querySelectorAll(".inactive[data-row='0']"))
+                        resetColors(0)
+
+                        document.getElementById("commitRow").setAttribute("disabled", "true")
+
+                        document.getElementById("winningPopup").classList.add("displayNone")
+                        document.getElementById("loosingPopup").classList.add("displayNone")
+
+            }
+
+            var addEventListener = function addEventListener($dom, event, fn) {
+                for(var i = 0; i < $dom.length; i++ ) {
+                    $dom[i].addEventListener(event, fn, false)
+                }
+            }
+
             // button handler
+            // new game button
+            addEventListener(document.getElementsByClassName("restartGame"), 'click', restartGame)
+
+            // next row buttoon
             document.getElementById("commitRow").addEventListener('click', function(ev) {
                 var $currentRow = document.getElementsByClassName("active")
                 var currentRow = $currentRow[0].getAttribute("data-row")
@@ -193,10 +245,10 @@
 
                     if(isLost) {
                         console.log("lost game over")
-                        resetField()
+                        gameLost()
                     } else if(isWon) {
                         console.log("won game over")
-                        resetField()
+                        gameWon()
                     } else {
                         setDataAvtive(false, document.querySelectorAll(".active[data-row='"+currentRow+"']"))
                         setDataAvtive(true, document.querySelectorAll(".inactive[data-row='"+(Number(currentRow)+1)+"']"))
@@ -205,9 +257,6 @@
 
                     }
                 })
-            }, false)
-            document.getElementById("restartGame").addEventListener('click', function(ev) {
-                console.log("restartGame:click")
             }, false)
 
             // create gamefield of template rows
