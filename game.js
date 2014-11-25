@@ -19,7 +19,7 @@ var makeGame = function game(/* beeds to initialize task */) {
         ORANGE:'orange',
         BROWN:'brown' }
     var colors = [color.RED,color.GREEN,color.YELLOW,color.BLUE,color.ORANGE,color.BROWN]
-    var maxRows = 6
+    var maxRows = 2
     var state = {
                     gameField: [],
                     evaluations: [],
@@ -39,7 +39,6 @@ var makeGame = function game(/* beeds to initialize task */) {
         state: state,
 
         play:function() {
-debugger
             var blacks = 0
             var whites = 0
             var taskCopy = g.copy(state.task)

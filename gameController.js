@@ -51,18 +51,26 @@ function gameController (maxRows, dropHandler,rowCompleteHandler,newGameHandler)
     }
 
     var restartGame = function(ev) {
-        for( var i = 1; i < maxRows; i++ ) {
-                resetColors(i)
-                setDataAvtive(false, document.querySelectorAll(".active[data-row='"+i+"']"))
-        }
-                setDataAvtive(true, document.querySelectorAll(".inactive[data-row='0']"))
-                resetColors(0)
-
-                document.getElementById("commitRow").setAttribute("disabled", "true")
-
-                document.getElementById("winningPopup").classList.add("displayNone")
-                document.getElementById("loosingPopup").classList.add("displayNone")
-
+        
+        newGameHandler(function() {
+            for( var i = 1; i < maxRows; i++ ) {
+                    resetColors(i)
+                    setDataAvtive(false, document.querySelectorAll(".active[data-row='"+i+"']"))
+            }
+            setDataAvtive(true, document.querySelectorAll(".inactive[data-row='0']"))
+            resetColors(0)
+    
+            document.getElementById("commitRow").setAttribute("disabled", "true")
+    
+            document.getElementById("winningPopup").classList.add("displayNone")
+            document.getElementById("loosingPopup").classList.add("displayNone")
+            
+            var $resultBeads = document.getElementsByClassName("resultBeed")
+            for(var i = 0; i < $resultBeads.length; i++) {
+                $resultBeads[i].classList.remove("white")
+                $resultBeads[i].classList.remove("black")
+            }
+        })
     }
 
     var addEventListener = function addEventListener($dom, event, fn) {
@@ -80,7 +88,7 @@ function gameController (maxRows, dropHandler,rowCompleteHandler,newGameHandler)
         var $currentRow = document.getElementsByClassName("active")
         var currentRow = $currentRow[0].getAttribute("data-row")
         var colors = getColorsFrom($currentRow)
-        rowCompleteHandler(colors, function continueGame(isLost, isWon, blacks, whites) {
+        rowCompleteHandler(colors, function continueGame(isGameOver, isWon, blacks, whites) {
             var selectorForResultBeads = "div[id='" + currentRow + "'] div.resultBeed"
             var $resultBeads = document.querySelectorAll(selectorForResultBeads)
             for(var i = 0; i < $resultBeads.length; i++ ) {
@@ -88,12 +96,12 @@ function gameController (maxRows, dropHandler,rowCompleteHandler,newGameHandler)
                 else if(whites > 0 ) {$resultBeads[i].classList.add("white"); whites -= 1; }
             }
 
-            if(isLost) {
-                console.log("lost game over")
-                gameLost()
-            } else if(isWon) {
+            if(isWon) {
                 console.log("won game over")
                 gameWon()
+            } else if(isGameOver) {
+                console.log("lost game over")
+                gameLost()
             } else {
                 setDataAvtive(false, document.querySelectorAll(".active[data-row='"+currentRow+"']"))
                 setDataAvtive(true, document.querySelectorAll(".inactive[data-row='"+(Number(currentRow)+1)+"']"))
