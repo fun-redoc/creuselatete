@@ -123,7 +123,7 @@ function gameController (maxRows, dropHandler,rowCompleteHandler,newGameHandler)
 
     var $dragElement = null
 
-    // attach drp event handler
+/*    // attach drp event handler
     var $dropElements = document.getElementsByClassName("plcaholder")
     for( var i = 0; i < $dropElements.length; i++) {
         $dropElements[i].addEventListener('drop', function(e) {
@@ -180,4 +180,26 @@ document.getElementById("commitRow").setAttribute("disabled","true")
             $dragElement = null
         },false)
     }
+*/    
+    // attach drag event handler
+    var $touchElements = document.getElementsByClassName("bead")
+    for( var i = 0; i < $touchElements.length; i++) {
+        $touchElements[i].addEventListener('touchstart', function(ev) {
+            console.log("touch start")
+            clonedNode = this.cloneNode(true)
+            ev.preventDefault()
+        },false)
+        $touchElements[i].addEventListener('touchmove', function(ev) {
+            console.log("touch move")
+            ev.preventDefault()
+        },false)
+        $touchElements[i].addEventListener('touchend', function(ev) {
+            console.log("touch end", ev)
+            ev.preventDefault()
+        },false)
+        $touchElements[i].addEventListener('touchcancel', function(ev) {
+            console.log("touch cancel")
+            ev.preventDefault()
+        },false)
+    }    
 }

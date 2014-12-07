@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <style type="text/css">
+            .drag {
+                background-color:black;
+                z-index:1000;
+                zoom: 1;
+              	filter: alpha(opacity=50);
+              	opacity: 0.5;                
+            }
+            .over {
+              outline: 10px solid grey;
+            }
+            .color_green { background-color:green;}
+            .color_red { background-color:red;}
+            .source {
+                position:absolute;
+                top: 250px;
+                left:100px;
+                width:100px;
+                height:100px;
+                z-index:800;
+            }
+            .dest {
+                position:absolute;
+                top: 370px;
+                left:100px;
+                width:100px;
+                height:100px;
+            }
+            ul#log {
+                overflow:auto;
+                position:fixed;
+                margin:0px;
+                padding:0px;
+                background-color:lightgrey;
+                border: 1px solid silver;
+                top: 5px;
+                left:5px;
+                width:100%;
+                height:150px;
+                list-style-type:none;
+                font-size:20px;
+            }
+        </style>
+    </head>
+    <body id="body">
+        <div class='source color_green' id='source'></div>
+        <div class='dest color_red' id='dest'></div>
+        <ul id='log'></ul>
+    </body>
+    <script>
+        var conc = function() {
+            var res = ""
+            for(var i = 0; i < arguments.length; i += 1) {
+                res += arguments[i]
+                if(i < arguments.length - 1) {
+                    res += ','
+                }
+            }
+            return res
+        }
+        
+        var getPosition = function getPosition(element) {
+            var xPosition = 0;
+            var yPosition = 0;
+          
+            while(element) {
+                xPosition += (element.offsetLeft - element.scrollLeft + element.clientLeft);
+                yPosition += (element.offsetTop - element.scrollTop + element.clientTop);
+                element = element.offsetParent;
+            }
+            return { x: xPosition, y: yPosition };
+        }        
+        
+        var logger = function() {
+            var logArea = document.getElementById('log')
+            return function() {
+                var newLi = document.createElement('li')
+                var newTxt = document.createTextNode(conc.apply(null, arguments))
+                newLi.appendChild(newTxt)
+                logArea.appendChild(newLi)
+                logArea.scrollTop = logArea.scrollHeight
+            }
+        }
+        var log
+        
+        var handleTouch = function(ev, cbDropOver) {
+            var toucheNodes = []
+            
+            var touchStart = function(ev) {
+                var node = ev.target.cloneNode(true)
+                var parent = ev.target.parentNode
+                var touches = ev.changedTouches
+                for( var i=0; i<touches.length; i+=1) {
+                    var touch = touches[i]
+                    for(var c=node.classList.length-1;  c >= 0; c-=1) {
+                        if( node.classList[c].substr(0,"color_".length) === "color_" ) {
+                            node.classList.remove(node.classList[c])
+                        }
+                    }
+                    node.classList.add('drag')
+                    parent.appendChild(node)
+                    var pos = getPosition(node)
+                    pos.x = node.offsetLeft
+                    pos.y = node.offsetTop
+                    log(node.classList, pos.x, pos.y)
+                    node.touchInNodeX = touch.clientX - pos.x
+                    node.touchInNodeY = touch.clientY - pos.y
+                    log(node.classList, node.touchInNodeX, node.touchInNodeY)
+                    toucheNodes.push(node)
+                }
+            }
+            
+            var touchMove = function(ev) {
+                var touchX = ev.changedTouches[0].clientX 
+                var touchY = ev.changedTouches[0].clientY
+                for( var i=0; i < toucheNodes.length; i+=1) {
+                    var dragNode = toucheNodes[i]
+                    var pos = getPosition(dragNode)
+                    var newLeft = touchX-dragNode.touchInNodeX
+                    var newTop = touchY-dragNode.touchInNodeY
+                    dragNode.style.left = newLeft + 'px'
+                    dragNode.style.top = newTop + 'px'
+                }
+                
+                // TODO auslagern, dest Nodes in der closure speichern, siehe auc touchend                
+                var $destNodes = document.getElementsByClassName('dest')
+                for( var i=0; i < $destNodes.length; i+=1) {
+                    var dropNode = $destNodes[i]
+                    var r = getPosition(dropNode)
+                    r.w = dropNode.offsetWidth
+                    r.h = dropNode.offsetHeight
+                    dropNode.classList.remove("over")
+                    if( r.x <= touchX && touchX <= r.x + r.w &&
+                        r.y <= touchY && touchY <= r.y + r.h ) {
+                      log("over",dropNode.classList)
+                      dropNode.classList.add("over")
+                      log("over",dropNode.classList)
+                    }
+                }
+            }
+            var touchEnd = function(ev) {log('end');
+                var touchX = ev.changedTouches[0].pageX 
+                var touchY = ev.changedTouches[0].pageY
+                var $destNodes = document.getElementsByClassName('dest')
+                
+                for( var i=0; i < $destNodes.length; i+=1) {
+                    var dropNode = $destNodes[i]
+                    var r = getPosition(dropNode)
+                    r.w = dropNode.offsetWidth
+                    r.h = dropNode.offsetHeight
+                    dropNode.classList.remove("over")
+//                    log(r.x, r.y, r.w, r.h, touchX, touchY)
+                    if( r.x <= touchX && touchX <= r.x + r.w &&
+                        r.y <= touchY && touchY <= r.y + r.h ) {
+                          log("found", dropNode)
+                          cbDropOver(dropNode)
+                        }
+                }
+                
+                for( var i=0; i < toucheNodes.length; i+=1) {
+                    var dragNode = toucheNodes[i]
+                    dragNode.parentNode.removeChild(dragNode)
+                }
+            }
+            var touchCancel = function(ev) {log('cancel'); touchEnd(ev)}
+            touchStart(ev)
+            return {
+                touchMove  : touchMove,
+                touchEnd   : touchEnd,
+                touchCancel: touchCancel
+            }
+        }
+        
+        window.onload = function() {
+            var touch = null
+            log = logger()
+            // attach drag event handler
+            var $touchElements = document.getElementsByClassName("source")
+            for( var i = 0; i < $touchElements.length; i++) {
+                $touchElements[i].addEventListener('touchstart', function(ev) {
+                    ev.preventDefault()
+                    touch = handleTouch(ev, function dropOver(elem) {
+                      elem.innerHTML = "<p>drop</p>"
+                    } )
+                },false)
+                $touchElements[i].addEventListener('touchmove', function(ev) {
+                    //log("move x")
+                    ev.preventDefault()
+                    touch.touchMove(ev)
+                },false)
+                $touchElements[i].addEventListener('touchend', function(ev) {
+                    ev.preventDefault()
+                    touch.touchEnd(ev)
+                },false)
+                $touchElements[i].addEventListener('touchcancel', function(ev) {
+                    ev.preventDefault()
+                    touch.touchCancel(ev)
+                },false)
+            }
+        }
+    </script>
+</html>
