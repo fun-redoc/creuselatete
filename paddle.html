@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Pong</title>
+        <style type="text/css">
+            ul#log {
+                overflow:auto;
+                position:fixed;
+                margin:0px;
+                padding:0px;
+                background-color:lightgrey;
+                border: 1px solid silver;
+                top: 500px;
+                left:5px;
+                width:100%;
+                height:150px;
+                list-style-type:none;
+                font-size:20px;
+            }        
+            .paddle {
+                background-color:black;
+                position:absolute;
+            }
+            .leftPaddle {
+                top:190px;
+                left:10px;
+                height:100px;
+                width:20px;
+            }
+            .rightPaddle {
+                top:190px;
+                left:610px;
+                height:100px;
+                width:20px;
+            }
+            .ball {
+                background-color: black;
+                border-radius:50%/50%;
+                position:absolute;
+                top:240px;
+                left:320px;
+                width:30px;
+                height:30px;
+            }
+            .field {
+                background-color:green;
+                position: absolute;
+                top:0px;
+                left:0px;
+                width:640px;
+                height:480px
+                
+            }
+            .middleLine {
+                background-color:balck;
+                position:absolute;
+                top:0px;
+                left:320px;
+                height:480px;
+                width:0px;
+                outline: 8px dashed black;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="field" id="field">
+            <div class="paddle leftPaddle" id="leftPaddle"></div>
+            <div class="paddle rightPaddle" id="rightPaddle"></div>
+            <div class="middleLine" id="middleLine"></div>
+            <div class="ball" id="ball"></div>
+        </div>
+        <ul id='log'></ul>
+    </body>
+    <script type="text/javascript">
+        var logger = function() {
+            var logArea = document.getElementById('log')
+            var conc = function() {
+                var res = ""
+                for(var i = 0; i < arguments.length; i += 1) {
+                    res += arguments[i]
+                    if(i < arguments.length - 1) {
+                        res += ','
+                    }
+                }
+                return res
+            }
+          
+            return function() {
+                var newLi = document.createElement('li')
+                var newTxt = document.createTextNode(conc.apply(null, arguments))
+                newLi.appendChild(newTxt)
+                logArea.appendChild(newLi)
+                logArea.scrollTop = logArea.scrollHeight
+            }
+        }
+        window.onload = function() {
+            var log = logger()
+
+            var makeKeyboardInputHandler = function(definedEvents) {
+              var events = []
+              
+              document.addEventListener('keydown', function(ev) {
+                log(ev.keyCode)
+                var definedEvent = definedEvents[ev.keyCode]
+                if(definedEvent) {
+                  ev.preventDefault()
+                  log(definedEvent)
+                  events.push(definedEvent)
+                }
+              })
+              
+              // TODO
+              var consume = function(handlers) {
+                // TODO log or Error when no handler found
+                events.forEach( function(evt) { handlers[evt]() })
+                events = []
+              }
+              
+              return {
+                 consume: consume 
+              }
+            }
+            var makeGame = function(width, height, ball, player1, player2, input) {
+              var isPaused = true
+              
+              var world = {
+                ball : {
+                  position: [0,0],
+                  direction: [0,0],
+                  speed: 0, // px per second
+                  width:0,
+                  height:0,
+                  serve: function(x,y,v,dir) {
+                    this.direction = dir
+                    this.speed = v/1000
+                    this.position = [x,y]
+                  },
+                  update: function(dt) {
+                    this.position = [this.position[0]+this.direction[0]*this.speed*dt, this.position[1]+this.direction[1]*this.speed*dt]
+                  }
+                },
+                player1: {
+                  position: [0,0],
+                  direction: [0,0],
+                  speed: 10 // px per second
+                  width:0,
+                  height:0,
+                },
+                player2: {
+                  position: [0,0],
+                  direction: [0,0],
+                  speed: 10 // px per second
+                  width:0,
+                  height:0,
+                }
+              }
+              
+              var startGame = function() {
+                isPaused = false 
+                world.ball.serve(width/2, height/2, 100, [1,0])                
+              }
+              
+              var pauseGame = function() {
+                log("pause Game")
+                isPaused = true
+              }
+              
+              var continueGame = function() {
+                log("continue Game")
+                isPaused = false 
+              }
+              
+              var paddleUp = function(dt) {
+                return function () {
+                  player1.up(dt)
+                }
+              }
+              
+              var paddleDown = function(dt) {
+                return function () {
+                  player1.down(dt)
+                }
+              }
+
+              var update = function(dt) {
+                //log("udate", dt)
+                // TODO
+                input.consume(
+                  {
+                    'start' : startGame,
+                    'stop' : pauseGame,
+                    'continue' : continueGame,
+                    'up' : paddleUp(dt),
+                    'down' : paddleDown(dt)
+                  }
+                )
+                  if(!isPaused) {
+                    world.ball.update(dt)
+                    //log(world.ball.position[0],world.ball.position[1])
+                    handleCollision(world.ball,world.pla}yer1)
+                    handleCollision(world.ball,world.player2)
+                    handleCollision(world.ball,{})
+                    
+                  }
+              }
+              
+              var draw = function(dt) {
+                //log("draw", dt)
+                
+                // transform to viewport coordinates
+                
+                // draw ball
+                ball.setPos.apply(null, world.ball.position)
+                
+                
+                // draw paddles
+                
+              }
+              
+              var deltaTime = (function() {
+                var lastTime =  Date.now()
+                return function() {
+                  var time =  Date.now()
+                  var dt = time - lastTime
+                  lastTime = time
+                  return dt
+                }
+              })()
+
+              var loop = function() {
+                  var dt = deltaTime()
+                  update(dt)
+                  draw(dt)
+              }
+              
+              startGame()
+              
+              return {
+                loop: loop
+              }
+            }
+            
+            var input = makeKeyboardInputHandler({'32':'stop', '67':'continue', '38':'up', '40':'down'})
+            var $player1 = document.getElementById("leftPaddle")
+            var $player2 = document.getElementById("rightPaddle")
+            var $ball = document.getElementById("ball")
+            
+            $player1.up = function(dt) {
+              this.style.top = (this.offsetTop - (dt/1000)*800) + 'px'
+              log("player1 up", dt, this)
+            }
+            $player1.down = function(dt) {
+              this.style.top = (this.offsetTop + (dt/1000)*800) + 'px'
+              log("player1 down", dt, this)
+            }
+
+            // better as monade
+            var ball = function($ball) {
+              
+              var width = function() {
+                return $ball.offsetWidth
+              }
+              var height = function() {
+                return $ball.offsetHeight
+              }
+              
+              var setPos = function(x,y) {
+                $ball.style.left = (x - width()/2) + 'px'
+                $ball.style.top = (y - height()/2) + 'px'
+                return this
+              }
+              
+              return {
+                setPos   : setPos,
+                getPos   : { x:$ball.offsetLeft, y:$ball.offsetTop },
+                width : width,
+                height: height
+              }
+            }
+
+            var game = makeGame(640,480, ball($ball), $player1, $player2, input)
+            
+            requestAnimationFrame( function loop() { game.loop(); window.requestAnimationFrame(loop) })
+
+        }
+    </script>
+</html>

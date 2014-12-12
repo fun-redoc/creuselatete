@@ -86,9 +86,9 @@
         }
         var log
         
-        var handleTouch = function(ev, cbDropOver) {
+        var touchDragDrop = function touchDragDrop($dragableElements,$dropElements,handleDropCallback) {
             var toucheNodes = []
-            
+
             var touchStart = function(ev) {
                 var node = ev.target.cloneNode(true)
                 var parent = ev.target.parentNode
@@ -109,97 +109,138 @@
                     node.touchInNodeX = touch.clientX - pos.x
                     node.touchInNodeY = touch.clientY - pos.y
                     log(node.classList, node.touchInNodeX, node.touchInNodeY)
+                    node.touchId = touch.identifier
+                    log("start id", node.touchId)
                     toucheNodes.push(node)
                 }
             }
             
             var touchMove = function(ev) {
-                var touchX = ev.changedTouches[0].clientX 
-                var touchY = ev.changedTouches[0].clientY
+              for(var t=0; t < ev.changedTouches.length; t+=1) {
+                var touch = ev.changedTouches[t]
+                var touchX = touch.clientX 
+                var touchY = touch.clientY
+                
                 for( var i=0; i < toucheNodes.length; i+=1) {
-                    var dragNode = toucheNodes[i]
+                  var dragNode = toucheNodes[i]
+                  if( touch.identifier === dragNode.touchId ) {
                     var pos = getPosition(dragNode)
                     var newLeft = touchX-dragNode.touchInNodeX
                     var newTop = touchY-dragNode.touchInNodeY
                     dragNode.style.left = newLeft + 'px'
                     dragNode.style.top = newTop + 'px'
+                  }
                 }
-                
-                // TODO auslagern, dest Nodes in der closure speichern, siehe auc touchend                
-                var $destNodes = document.getElementsByClassName('dest')
-                for( var i=0; i < $destNodes.length; i+=1) {
-                    var dropNode = $destNodes[i]
-                    var r = getPosition(dropNode)
-                    r.w = dropNode.offsetWidth
-                    r.h = dropNode.offsetHeight
-                    dropNode.classList.remove("over")
-                    if( r.x <= touchX && touchX <= r.x + r.w &&
-                        r.y <= touchY && touchY <= r.y + r.h ) {
-                      log("over",dropNode.classList)
-                      dropNode.classList.add("over")
-                      log("over",dropNode.classList)
-                    }
+              }
+
+              // highlite the dest node hit
+              // TODO transfer this part to the outside
+              var $destNodes = $dropElements
+              for( var i=0; i < $destNodes.length; i+=1) {
+                var dropNode = $destNodes[i]
+                var r = getPosition(dropNode)
+                r.w = dropNode.offsetWidth
+                r.h = dropNode.offsetHeight
+                dropNode.classList.remove("over")
+                if( r.x <= touchX && touchX <= r.x + r.w &&
+                    r.y <= touchY && touchY <= r.y + r.h ) {
+                  log("over",dropNode.classList)
+                  dropNode.classList.add("over")
+                  log("over",dropNode.classList)
                 }
+              }
             }
+            
             var touchEnd = function(ev) {log('end');
-                var touchX = ev.changedTouches[0].pageX 
-                var touchY = ev.changedTouches[0].pageY
-                var $destNodes = document.getElementsByClassName('dest')
-                
-                for( var i=0; i < $destNodes.length; i+=1) {
-                    var dropNode = $destNodes[i]
-                    var r = getPosition(dropNode)
-                    r.w = dropNode.offsetWidth
-                    r.h = dropNode.offsetHeight
-                    dropNode.classList.remove("over")
-//                    log(r.x, r.y, r.w, r.h, touchX, touchY)
-                    if( r.x <= touchX && touchX <= r.x + r.w &&
-                        r.y <= touchY && touchY <= r.y + r.h ) {
-                          log("found", dropNode)
-                          cbDropOver(dropNode)
-                        }
+                var $destNodes = $dropElements
+
+                for( var t=0; t < ev.changedTouches.length; t+=1) {
+                  var touch = ev.changedTouches[t]
+                  var touchX = touch.clientX 
+                  var touchY = touch.clientY
+
+                  log("hier 0", t, touch, touchX, touchY)
+                  
+                  // TODO transfer this part to the outsiode
+                  //      you only get a signal, that you are
+                  //      over a dest node, what to do with it
+                  //      shoud be decided outside this function
+                  for( var i=0; i < $destNodes.length; i+=1) {
+                      var dropNode = $destNodes[i]
+                      var r = getPosition(dropNode)
+                      r.w = dropNode.offsetWidth
+                      r.h = dropNode.offsetHeight
+                      dropNode.classList.remove("over")
+                      if( r.x <= touchX && touchX <= r.x + r.w &&
+                          r.y <= touchY && touchY <= r.y + r.h ) {
+                        log("found", dropNode, touch.target)
+                        handleDropCallback(touch.target, dropNode)
+                        log("found", "after callback")
+                      }
+                  }
+                  log("hier 1" , t)
+                  for( var i=0; i < toucheNodes.length; i+=1) {
+                      var dragNode = toucheNodes[i]
+                      if( dragNode.touchId === touch.identifier ) {
+                      // make dom a maybe monad to get rid of if
+                      if(dragNode && dragNode.parentNode) dragNode.parentNode.removeChild(dragNode)
+                      delete toucheNodes[i]
+                      }
+                  }
                 }
-                
-                for( var i=0; i < toucheNodes.length; i+=1) {
-                    var dragNode = toucheNodes[i]
-                    dragNode.parentNode.removeChild(dragNode)
-                }
+                log("hier 2", toucheNodes.length)
+                // compactify touchnodes array
+                toucheNodes = toucheNodes.reduce(function(a,v,i) {
+                  if(v) {
+                    a.push(v)
+                  }
+                  return a
+                },[])
+                log("end", toucheNodes.length)
             }
-            var touchCancel = function(ev) {log('cancel'); touchEnd(ev)}
-            touchStart(ev)
-            return {
-                touchMove  : touchMove,
-                touchEnd   : touchEnd,
-                touchCancel: touchCancel
+            
+            var touchCancel = function(ev) { touchEnd(ev) }
+            
+
+            // attach drag event handler
+            var $touchElements = $dragableElements
+            for( var i = 0; i < $touchElements.length; i++) {
+                $touchElements[i].addEventListener('touchstart', function(ev) {
+                    ev.preventDefault()
+                    touchStart(ev)
+                },false)
+                $touchElements[i].addEventListener('touchmove', function(ev) {
+                    ev.preventDefault()
+                    touchMove(ev)
+                },false)
+                $touchElements[i].addEventListener('touchend', function(ev) {
+                    ev.preventDefault()
+                    touchEnd(ev)
+                },false)
+                $touchElements[i].addEventListener('touchcancel', function(ev) {
+                    ev.preventDefault()
+                    touchCancel(ev)
+                },false)
             }
+            
+            // return {
+            //     touchStart  : touchStart,
+            //     touchMove  : touchMove,
+            //     touchEnd   : touchEnd,
+            //     touchCancel: touchCancel
+            // }
         }
         
         window.onload = function() {
             var touch = null
             log = logger()
-            // attach drag event handler
-            var $touchElements = document.getElementsByClassName("source")
-            for( var i = 0; i < $touchElements.length; i++) {
-                $touchElements[i].addEventListener('touchstart', function(ev) {
-                    ev.preventDefault()
-                    touch = handleTouch(ev, function dropOver(elem) {
-                      elem.innerHTML = "<p>drop</p>"
-                    } )
-                },false)
-                $touchElements[i].addEventListener('touchmove', function(ev) {
-                    //log("move x")
-                    ev.preventDefault()
-                    touch.touchMove(ev)
-                },false)
-                $touchElements[i].addEventListener('touchend', function(ev) {
-                    ev.preventDefault()
-                    touch.touchEnd(ev)
-                },false)
-                $touchElements[i].addEventListener('touchcancel', function(ev) {
-                    ev.preventDefault()
-                    touch.touchCancel(ev)
-                },false)
+            
+            var $dragableElements = document.getElementsByClassName("source")
+            var $dropElements = document.getElementsByClassName("dest")
+            var handleDropCallback = function(dragElem,dropElem) {
+              dropElem.innerHTML = "<p>drop</p>"
             }
+            touchDragDrop($dragableElements,$dropElements,handleDropCallback)
         }
     </script>
 </html>
