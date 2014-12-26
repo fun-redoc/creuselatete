@@ -73,6 +73,7 @@
     </body>
     <script type="text/javascript">
         var logger = function() {
+          "use strict";
             var logArea = document.getElementById('log')
             var conc = function() {
                 var res = ""
@@ -93,7 +94,32 @@
                 logArea.scrollTop = logArea.scrollHeight
             }
         }
+        
+        var extend = function(obj , ext ) {
+          for( p in ext ) {
+            var d = Object.getOwnPropertyDescriptor(ext,p)
+            Object.defineProperty(obj,p,d)
+          }
+          return obj
+        }        
+        
+        //+ copy :: a -> a
+        var copy = function copy(origin) {
+          "use strict";
+          if( origin instanceof Array) return fn.map(copy,origin)
+        
+          if( typeof origin === 'object') {
+            return Object.keys(origin).reduce( function(accu, key) {
+              accu[key] = typeof origin[key] === 'object' ? copy(origin[key]) : origin[key]
+              return accu
+            }, {})
+          }
+        
+          return origin
+        }
+        
         window.onload = function() {
+          "use strict";
             var log = logger()
 
             var makeKeyboardInputHandler = function(definedEvents) {
@@ -120,44 +146,46 @@
                  consume: consume 
               }
             }
-            var makeGame = function(width, height, ball, player1, player2, input) {
+            var makeGame = function(width, height, $ball, $player1, $player2, input) {
+              "use strict";
               var isPaused = true
               
               var world = {
-                ball : {
-                  position: [0,0],
-                  direction: [0,0],
+                ball: extend($ball, {
+                  position: copy($ball.position),
+                  direction: {x:0,y:0},
+                  radius: ($ball.width / 2),
                   speed: 0, // px per second
-                  width:0,
-                  height:0,
+//                  width:$ball.width(),
+//                  height:$ball.height(),
                   serve: function(x,y,v,dir) {
                     this.direction = dir
                     this.speed = v/1000
-                    this.position = [x,y]
+                    this.position = {x:x,y:y}
                   },
                   update: function(dt) {
-                    this.position = [this.position[0]+this.direction[0]*this.speed*dt, this.position[1]+this.direction[1]*this.speed*dt]
+                    this.position = {x: this.position.x+this.direction.x*this.speed*dt, y:this.position.y+this.direction.y*this.speed*dt}
                   }
-                },
-                player1: {
-                  position: [0,0],
-                  direction: [0,0],
-                  speed: 10 // px per second
-                  width:0,
-                  height:0,
-                },
+                }),
+                player1: extend($player1, {
+                  //position: {x:0,y:0},
+                  //direction: {x:0,y:0},
+                  speed: 10, // px per second
+                  //width:$player1.width,
+                  //height:$player1.height,
+                }),
                 player2: {
-                  position: [0,0],
-                  direction: [0,0],
-                  speed: 10 // px per second
-                  width:0,
-                  height:0,
+                  position: {x:0,y:0},
+                  direction: {x:0,y:0},
+                  speed: 10, // px per second
+                  width:$player2.width,
+                  height:$player2.width,
                 }
               }
               
               var startGame = function() {
                 isPaused = false 
-                world.ball.serve(width/2, height/2, 100, [1,0])                
+                world.ball.serve(width/2, height/2, 100, {x:-1,y:0})                
               }
               
               var pauseGame = function() {
@@ -172,16 +200,247 @@
               
               var paddleUp = function(dt) {
                 return function () {
-                  player1.up(dt)
+                  $player1.up(dt)
                 }
               }
               
               var paddleDown = function(dt) {
                 return function () {
-                  player1.down(dt)
+                  $player1.down(dt)
                 }
               }
+              var rectCircleIntersect = function( rect, start, end, radius) {
+        var L = rect.position.x;
+        var T = rect.position.y;
+        var R = rect.width + L;
+        var B = rect.height + T;
+ 
+        // If the bounding box around the start and end points (+radius on all
+        // sides) does not intersect with the rectangle, definitely not an
+        // intersection
+        if ((Math.max( start.x, end.x ) + radius < L) ||
+            (Math.min( start.x, end.x ) - radius > R) ||
+            (Math.max( start.y, end.y ) + radius < T) ||
+            (Math.min( start.y, end.y ) - radius > B) )
+        {
+            return null;
+        }
+ 
+        var dx = end.x - start.x;
+        var dy = end.y - start.y;
+        var invdx = (dx == 0.0 ? 0.0 : 1.0 / dx);
+        var invdy = (dy == 0.0 ? 0.0 : 1.0 / dy);
+        var cornerX = Number.MAX_VALUE;
+        var cornerY = Number.MAX_VALUE;
+ 
+        // Calculate intersection times with each side's plane
+        // Check each side's quadrant for single-side intersection
+        // Calculate Corner
+     
+        /** Left Side **/
+        // Does the circle go from the left side to the right side of the rectangle's left?
+        if ( start.x - radius < L && end.x + radius > L )
+        {
+            var ltime = ((L - radius) - start.x) * invdx;
+            if (ltime >= 0.0 && ltime <= 1.0)
+            {
+                var ly = dy * ltime + start.y;
+                // Does the collisions point lie on the left side?
+                if (ly >= T && ly <= B)
+                {
+                    return { ix:dx * ltime + start.x, iy:ly, time:ltime, nx:-1, ny:0, cornerX:L, cornerY:ly };
+                }
+            }
+            cornerX = L;
+        }
+ 
+        /** Right Side **/
+        // Does the circle go from the right side to the left side of the rectangle's right?
+        if ( start.x + radius > R && end.x - radius < R )
+        {
+            var rtime = (start.x - (R + radius)) * -invdx;
+            if (rtime >= 0.0 && rtime <= 1.0)
+            {
+                var ry = dy * rtime + start.y;
+                // Does the collisions point lie on the right side?
+                if (ry >= T && ry <= B)
+                {
+                    return { ix:dx * rtime + start.x, iy:ry * ttime + start.y, time:rtime, nx:1, ny:0, cornerX:R, cornerY:ry }
+                }
+            }
+            cornerX = R;
+        }
+ 
+        /** Top Side **/
+        // Does the circle go from the top side to the bottom side of the rectangle's top?
+        if (start.y - radius < T && end.y + radius > T)
+        {
+            var ttime = ((T - radius) - start.y) * invdy;
+            if (ttime >= 0.0 && ttime <= 1.0)
+            {
+                var tx = dx * ttime + start.x;
+                // Does the collisions point lie on the top side?
+                if (tx >= L && tx <= R)
+                {
+                    return { ix:tx, iy:dy * ttime + start.y, time:ttime, nx:0, ny:-1, cornerX:tx, cornerY:T }
+                }
+            }
+            cornerY = T;
+        }
+ 
+        /** Bottom Side **/
+        // Does the circle go from the bottom side to the top side of the rectangle's bottom?
+        if (start.y + radius > B && end.y - radius < B)
+        {
+            var btime = (start.y - (B + radius)) * -invdy;
+            if (btime >= 0.0 && btime <= 1.0) {
+                var bx = dx * btime + start.x;
+                // Does the collisions point lie on the bottom side?
+                if (bx >= L && bx <= R)
+                {
+                    return { ix:bx, iy:dy * btime + start.y, time:btime, nx:0, ny:1, cornerX:bx, cornerY:B }
+                    
+                }
+            }
+            cornerY = B;
+        }
+ 
+        // No intersection at all!
+        if (cornerX == Number.MAX_VALUE && cornerY == Number.MAX_VALUE)
+        {
+            return null;
+        }
+ 
+        // Account for the times where we don't pass over a side but we do hit it's corner
+        if (cornerX != Number.MAX_VALUE && cornerY == Number.MAX_VALUE)
+        {
+            cornerY = (dy > 0.0 ? B : T);
+        }
+        if (cornerY != Number.MAX_VALUE && cornerX == Number.MAX_VALUE)
+        {
+            cornerX = (dx > 0.0 ? R : L);
+        }
+ 
+        /* Solve the triangle between the start, corner, and intersection point.
+         *                    
+         *           +-----------T-----------+
+         *           |                       |
+         *          L|                       |R
+         *           |                       |
+         *           C-----------B-----------+
+         *          / \      
+         *         /   \r     _.-E
+         *        /     \ _.-'
+         *       /    _.-I
+         *      / _.-'
+         *     S-'
+         *
+         * S = start of circle's path
+         * E = end of circle's path
+         * LTRB = sides of the rectangle
+         * I = {ix, iY} = point at which the circle intersects with the rectangle
+         * C = corner of intersection (and collision point)
+         * C=>I (r) = {nx, ny} = radius and intersection normal
+         * S=>C = cornerdist
+         * S=>I = intersectionDistance
+         * S=>E = lineLength
+         * <S = innerAngle
+         * <I = angle1
+         * <C = angle2
+         */
+ 
+        var inverseRadius = 1.0 / radius;
+        var lineLength = Math.sqrt( dx * dx + dy * dy );
+        var cornerdx = cornerX - start.x;
+        var cornerdy = cornerY - start.y;
+        var cornerDistance = Math.sqrt( cornerdx * cornerdx + cornerdy * cornerdy );
+        var innerAngle = Math.acos( (cornerdx * dx + cornerdy * dy) / (lineLength * cornerDistance) );
+       
+        // If the circle is too close, no intersection.
+        if (cornerDistance < radius)
+        {
+           return null;
+        }
+       
+        // If inner angle is zero, it's going to hit the corner straight on.
+        if (innerAngle == 0.0)
+        {
+           var time = ((cornerDistance - radius) / lineLength);
+           
+           // If time is outside the boundaries, return null. This algorithm can
+           // return a negative time which indicates a previous intersection, and
+           // can also return a time > 1.0 which can predict a corner intersection.
+           if (time > 1.0 || time < 0.0)
+           {
+               return null;
+           }
+           
+           var ix = time * dx + start.x;
+           var iy = time * dy + start.y;
+           var nx = (cornerdx / cornerDistance);
+           var ny = (cornerdy / cornerDistance);
+           
+           return { ix:ix, iy:iy, time:time, nx:nx, ny:ny, cornerX:cornerX, cornerY:cornerY }
+        }
+       
+        var innerAngleSin = Math.sin( innerAngle );
+        var angle1Sin = innerAngleSin * cornerDistance * inverseRadius;
+ 
+        // The angle is too large, there cannot be an intersection
+        if (Math.abs( angle1Sin ) > 1.0)
+        {
+             return null;
+        }
+ 
+        var angle1 = Math.PI - Math.asin( angle1Sin );
+        var angle2 = Math.PI - innerAngle - angle1;
+        var intersectionDistance = radius * Math.sin( angle2 ) / innerAngleSin;
+ 
+        // Solve for time
+        var time = (intersectionDistance / lineLength);
+ 
+        // If time is outside the boundaries, return null. This algorithm can
+        // return a negative time which indicates a previous intersection, and
+        // can also return a time > 1.0 which can predict a corner intersection.
+        if (time > 1.0 || time < 0.0)
+        {
+            return null;
+        }
+ 
+        // Solve the intersection and normal
+        var ix = time * dx + start.x;
+        var iy = time * dy + start.y;
+        var nx = ((ix - cornerX) * inverseRadius);
+        var ny = ((iy - cornerY) * inverseRadius);
+ 
+        return { ix:ix, iy:iy, time:time, nx:nx, ny:ny, cornerX:cornerX, cornerY:cornerY }                
+              }
+              
+              var handleCollision = function(ball, oldBallPosition, rect) {
+                var ballCopy = copy(ball)
+                var intersection = rectCircleIntersect(rect, ballCopy.position, oldBallPosition, ballCopy.radius)
+                if(!intersection) {
+                  return ball
+                }
+                var end = ballCopy.position
+                var start = oldBallPosition
 
+                // Project Future Position
+                var remainingTime = 1.0 - intersection.time;
+                var dx = end.x - start.x;
+                var dy = end.y - start.y;
+                var dot = dx * intersection.nx + dy * intersection.ny;
+                var ndx = dx - 2 * dot * intersection.nx;
+                var ndy = dy - 2 * dot * intersection.ny;
+                var newx = intersection.cx + ndx * remainingTime;
+                var newy = intersection.cy + ndy * remainingTime;
+                
+                ballCopy.position.x = newx-ball.radius
+                ballCopy.position.y = newy-ball.radius
+                return ballCopy
+                
+              }
+              
               var update = function(dt) {
                 //log("udate", dt)
                 // TODO
@@ -195,12 +454,18 @@
                   }
                 )
                   if(!isPaused) {
+                    var oldBallPosition = copy(world.ball.position)
                     world.ball.update(dt)
-                    //log(world.ball.position[0],world.ball.position[1])
-                    handleCollision(world.ball,world.pla}yer1)
-                    handleCollision(world.ball,world.player2)
-                    handleCollision(world.ball,{})
-                    
+                    // TODO optimization ideas
+                    //  1 check first in which half is the ball
+                    //  2. 
+                    world.ball = handleCollision(world.ball, oldBallPosition, world.player1)
+                    world.ball = handleCollision(world.ball, oldBallPosition, world.player2)
+                    return
+                    world.ball = handleCollision(world.ball, oldBallPosition, world.upperWall)
+                    world.ball = handleCollision(world.ball, oldBallPosition, world.bottomWall)
+                    world.ball = handleCollision(world.ball, oldBallPosition, world.leftWall)
+                    world.ball = handleCollision(world.ball, oldBallPosition, world.rightWall)
                   }
               }
               
@@ -210,7 +475,7 @@
                 // transform to viewport coordinates
                 
                 // draw ball
-                ball.setPos.apply(null, world.ball.position)
+                $ball.setPos.call(null, world.ball.position)
                 
                 
                 // draw paddles
@@ -240,11 +505,30 @@
               }
             }
             
-            var input = makeKeyboardInputHandler({'32':'stop', '67':'continue', '38':'up', '40':'down'})
-            var $player1 = document.getElementById("leftPaddle")
-            var $player2 = document.getElementById("rightPaddle")
-            var $ball = document.getElementById("ball")
+            var domToEntity = function($dom) {
+              var width = function() {
+                return $dom.offsetWidth
+              }
+              var height = function() {
+                return $dom.offsetHeight
+              }
+              var setPos = function(p) {
+                $dom.style.left = (p.x - width()/2) + 'px'
+                $dom.style.top = (p.y - height()/2) + 'px'
+                return this
+              }
+              return {
+                setPos   : setPos,
+                position   : { x:$dom.offsetLeft, y:$dom.offsetTop },
+                get width() { return width() },
+                get height() { return height() }
+              }
+            }
             
+            var input = makeKeyboardInputHandler({'32':'stop', '67':'continue', '38':'up', '40':'down'})
+            
+            var $player1 = domToEntity(document.getElementById("leftPaddle"))
+            var $player2 = domToEntity(document.getElementById("rightPaddle"))
             $player1.up = function(dt) {
               this.style.top = (this.offsetTop - (dt/1000)*800) + 'px'
               log("player1 up", dt, this)
@@ -254,31 +538,9 @@
               log("player1 down", dt, this)
             }
 
-            // better as monade
-            var ball = function($ball) {
-              
-              var width = function() {
-                return $ball.offsetWidth
-              }
-              var height = function() {
-                return $ball.offsetHeight
-              }
-              
-              var setPos = function(x,y) {
-                $ball.style.left = (x - width()/2) + 'px'
-                $ball.style.top = (y - height()/2) + 'px'
-                return this
-              }
-              
-              return {
-                setPos   : setPos,
-                getPos   : { x:$ball.offsetLeft, y:$ball.offsetTop },
-                width : width,
-                height: height
-              }
-            }
+            var $ball = document.getElementById("ball")
 
-            var game = makeGame(640,480, ball($ball), $player1, $player2, input)
+            var game = makeGame(640,480, domToEntity($ball), $player1, $player2, input)
             
             requestAnimationFrame( function loop() { game.loop(); window.requestAnimationFrame(loop) })
 

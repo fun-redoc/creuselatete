@@ -16,6 +16,15 @@ g.noop = function noop() {
     return null
 }
 
+g.extend =  function extend(obj , ext ) {
+                      "use strict";
+                      for( var p in ext ) {
+                        var d = Object.getOwnPropertyDescriptor(ext,p)
+                        Object.defineProperty(obj,p,d)
+                      }
+                      return obj
+                    }
+
     //+ trace :: b -> a -> a
 g.trace = function trace(b,a) {
   console.log("TRACE",b,":", a)
@@ -27,11 +36,11 @@ g.trace = function trace(b,a) {
 g.copy = function copy(origin) {
   if( origin instanceof Array) return origin.map(copy)
 
-  if( typeof origin === 'object') {
+  if( origin && typeof origin === 'object') {
     return Object.keys(origin).reduce( function(accu, key) {
       accu[key] = typeof origin[key] === 'object' ? copy(origin[key]) : origin[key]
       return accu
-    }, {})
+    }, Object.create(Object.getPrototypeOf(origin)))
   }
 
   return origin
